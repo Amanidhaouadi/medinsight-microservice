@@ -122,14 +122,26 @@ export default function Appbar(props: { appBarTitle: string }) {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            px: [1]
+            px: [1],
+            minHeight: "64px !important"
           }}
         >
-          <Typography variant="h4" align="center">
-            <img src="hospital.svg" height="40px" />
-            <span style={{ color: "#005B93" }}>MEDLNSIGHT</span>
-          </Typography>
-          <IconButton onClick={toggleDrawer}>
+          <Box sx={{ display: "flex", alignItems: "center", flex: 1, gap: 1 }}>
+            <img src="hospital.svg" height="40px" alt="logo" />
+            <Typography 
+              variant="h4" 
+              sx={{ 
+                color: "#005B93",
+                fontWeight: 600,
+                fontSize: { xs: "1.2rem", sm: "1.5rem" },
+                whiteSpace: "nowrap",
+                overflow: "visible"
+              }}
+            >
+              MEDLNSIGHT
+            </Typography>
+          </Box>
+          <IconButton onClick={toggleDrawer} sx={{ flexShrink: 0 }}>
             <ChevronLeftIcon />
           </IconButton>
         </Toolbar>
