@@ -42,6 +42,6 @@ jobs:
         run: |
           SERVICE_NAME=$(basename ${{ matrix.service }} | tr '[:upper:]' '[:lower:]')
           docker build -t monuser/$SERVICE_NAME:latest ./${{ matrix.service }}
-          docker push monuser/$SERVICE_NAME:latest
+          docker push boughanmiasma/$SERVICE_NAME:latest
 
 
