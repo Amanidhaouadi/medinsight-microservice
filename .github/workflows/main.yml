@@ -42,10 +42,11 @@ jobs:
         run: |
           # Définir le nom du service depuis la matrice
           SERVICE_NAME=${{ matrix.service }}
-          # Construire l'image avec tag spécifique pour chaque service
-          docker build -t boughanmiasma/pds:${SERVICE_NAME} ./${SERVICE_NAME}
-          # Pousser l'image vers Docker Hub
-          docker push boughanmiasma/pds:${SERVICE_NAME}
+          # remplacer les slashs par des tirets si nécessaire
+          IMAGE_TAG=$(echo $SERVICE_NAME | tr '/' '-')
+          docker build -t boughanmiasma/pds:$IMAGE_TAG ./${SERVICE_NAME}
+          docker push boughanmiasma/pds:$IMAGE_TAG
+
 
 
 
