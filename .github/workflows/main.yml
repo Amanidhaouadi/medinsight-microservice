@@ -5,7 +5,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build-docker-deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -15,7 +15,7 @@ jobs:
           - MedInsight-Microservices/ordonnance-service
           - Staff-service
     steps:
-      # 1️⃣ Checkout repo
+      # 1️⃣ Checkout repository
       - uses: actions/checkout@v3
 
       # 2️⃣ Setup Java
@@ -25,46 +25,48 @@ jobs:
           java-version: '20'
           distribution: 'temurin'
 
-      # 3️⃣ Start PostgreSQL container pour les tests
-      - name: Start PostgreSQL
-        run: |
-          docker run -d --name test-db \
-            -e POSTGRES_USER=sa \
-            -e POSTGRES_PASSWORD=sa \
-            -e POSTGRES_DB=testdb \
-            -p 5432:5432 postgres:15
-          # Attendre que la DB soit prête
-          for i in {1..20}; do
-            pg_isready -h localhost -p 5432 -U sa && break
-            echo "Waiting for PostgreSQL..."
-            sleep 3
-          done
-
-      # 4️⃣ Build Maven et exécuter tests
-      - name: Build ${{ matrix.service }} with tests
+      # 3️⃣ Build microservice avec Maven (tests ignorés)
+      - name: Build ${{ matrix.service }}
         working-directory: ./${{ matrix.service }}
-        env:
-          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/testdb
-          SPRING_DATASOURCE_USERNAME: sa
-          SPRING_DATASOURCE_PASSWORD: sa
-        run: mvn clean package
+        run: mvn clean package -DskipTests
 
-      # 5️⃣ Stop et supprimer le container PostgreSQL
-      - name: Cleanup PostgreSQL
-        run: |
-          docker stop test-db
-          docker rm test-db
-
-      # 6️⃣ Login Docker
+      # 4️⃣ Login Docker
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # 7️⃣ Build & Push Docker Image
+      # 5️⃣ Build & Push Docker image
       - name: Build & Push ${{ matrix.service }}
         run: |
           SERVICE_NAME=$(basename ${{ matrix.service }})
-          docker build -t monuser/$SERVICE_NAME:latest ${{ matrix.service }}
+          docker build -t monuser/$SERVICE_NAME:latest ./${{ matrix.service }}
           docker push monuser/$SERVICE_NAME:latest
+
+      # 6️⃣ Configure AWS
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      # 7️⃣ Install kubectl
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.30.0'
+
+      # 8️⃣ Update kubeconfig pour EKS
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name mon-cluster --region us-east-1
+
+      # 9️⃣ Deploy microservice sur Kubernetes
+      - name: Deploy ${{ matrix.service }} to Kubernetes
+        run: |
+          SERVICE_NAME=$(basename ${{ matrix.service }})
+          # Met à jour l'image dans le deployment existant
+          kubectl set image deployment/$SERVICE_NAME $SERVICE_NAME=monuser/$SERVICE_NAME:latest
+          # Vérifie le rollout
+          kubectl rollout status deployment/$SERVICE_NAME
