@@ -1,0 +1,192 @@
+Organizations:
+    - &OrdererOrg
+        Name: OrdererOrg
+        ID: OrdererMSP
+        MSPDir: crypto-config/ordererOrganizations/medinsight.com/msp
+        Policies:
+            Readers:
+                Type: Signature
+                Rule: "OR('OrdererMSP.member')"
+            Writers:
+                Type: Signature
+                Rule: "OR('OrdererMSP.member')"
+            Admins:
+                Type: Signature
+                Rule: "OR('OrdererMSP.admin')"
+
+    - &DoctorOrg
+        Name: DoctorOrg
+        ID: DoctorMSP
+        MSPDir: crypto-config/peerOrganizations/doctor.medinsight.com/msp
+        Policies:
+            Readers:
+                Type: Signature
+                Rule: "OR('DoctorMSP.admin', 'DoctorMSP.peer', 'DoctorMSP.client')"
+            Writers:
+                Type: Signature
+                Rule: "OR('DoctorMSP.admin', 'DoctorMSP.client')"
+            Admins:
+                Type: Signature
+                Rule: "OR('DoctorMSP.admin')"
+            Endorsement:
+                Type: Signature
+                Rule: "OR('DoctorMSP.peer')"
+
+    - &PharmacyOrg
+        Name: PharmacyOrg
+        ID: PharmacyMSP
+        MSPDir: crypto-config/peerOrganizations/pharmacy.medinsight.com/msp
+        Policies:
+            Readers:
+                Type: Signature
+                Rule: "OR('PharmacyMSP.admin', 'PharmacyMSP.peer', 'PharmacyMSP.client')"
+            Writers:
+                Type: Signature
+                Rule: "OR('PharmacyMSP.admin', 'PharmacyMSP.client')"
+            Admins:
+                Type: Signature
+                Rule: "OR('PharmacyMSP.admin')"
+            Endorsement:
+                Type: Signature
+                Rule: "OR('PharmacyMSP.peer')"
+
+    - &PatientOrg
+        Name: PatientOrg
+        ID: PatientMSP
+        MSPDir: crypto-config/peerOrganizations/patient.medinsight.com/msp
+        Policies:
+            Readers:
+                Type: Signature
+                Rule: "OR('PatientMSP.admin', 'PatientMSP.peer', 'PatientMSP.client')"
+            Writers:
+                Type: Signature
+                Rule: "OR('PatientMSP.admin', 'PatientMSP.client')"
+            Admins:
+                Type: Signature
+                Rule: "OR('PatientMSP.admin')"
+            Endorsement:
+                Type: Signature
+                Rule: "OR('PatientMSP.peer')"
+
+Capabilities:
+    Channel: &ChannelCapabilities
+        V2_0: true
+    Orderer: &OrdererCapabilities
+        V2_0: true
+    Application: &ApplicationCapabilities
+        V2_0: true
+
+Application: &ApplicationDefaults
+    Organizations:
+    Policies:
+        Readers:
+            Type: ImplicitMeta
+            Rule: "ANY Readers"
+        Writers:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+        Admins:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Admins"
+        LifecycleEndorsement:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Endorsement"
+        Endorsement:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Endorsement"
+    Capabilities:
+        <<: *ApplicationCapabilities
+
+Orderer: &OrdererDefaults
+    OrdererType: etcdraft
+    Addresses:
+        - orderer.medinsight.com:7050
+    EtcdRaft:
+        Consenters:
+        - Host: orderer.medinsight.com
+          Port: 7050
+          ClientTLSCert: crypto-config/ordererOrganizations/medinsight.com/orderers/orderer.medinsight.com/tls/server.crt
+          ServerTLSCert: crypto-config/ordererOrganizations/medinsight.com/orderers/orderer.medinsight.com/tls/server.crt
+    BatchTimeout: 2s
+    BatchSize:
+        MaxMessageCount: 10
+        AbsoluteMaxBytes: 99 MB
+        PreferredMaxBytes: 512 KB
+    Organizations:
+    Policies:
+        Readers:
+            Type: ImplicitMeta
+            Rule: "ANY Readers"
+        Writers:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+        Admins:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Admins"
+        BlockValidation:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+
+Channel: &ChannelDefaults
+    Policies:
+        Readers:
+            Type: ImplicitMeta
+            Rule: "ANY Readers"
+        Writers:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+        Admins:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Admins"
+    Capabilities:
+        <<: *ChannelCapabilities
+
+Profiles:
+    ThreeOrgsOrdererGenesis:
+        <<: *ChannelDefaults
+        Orderer:
+            <<: *OrdererDefaults
+            Organizations:
+                - *OrdererOrg
+            Capabilities:
+                <<: *OrdererCapabilities
+        Consortiums:
+            MedInsightConsortium:
+                Organizations:
+                    - *DoctorOrg
+                    - *PharmacyOrg
+                    - *PatientOrg
+    
+    ConsentChannel:
+        Consortium: MedInsightConsortium
+        <<: *ChannelDefaults
+        Application:
+            <<: *ApplicationDefaults
+            Organizations:
+                - *DoctorOrg
+                - *PatientOrg
+            Capabilities:
+                <<: *ApplicationCapabilities
+                
+    RecordsChannel:
+        Consortium: MedInsightConsortium
+        <<: *ChannelDefaults
+        Application:
+            <<: *ApplicationDefaults
+            Organizations:
+                - *DoctorOrg
+                - *PatientOrg
+            Capabilities:
+                <<: *ApplicationCapabilities
+
+    PrescriptionChannel:
+        Consortium: MedInsightConsortium
+        <<: *ChannelDefaults
+        Application:
+            <<: *ApplicationDefaults
+            Organizations:
+                - *DoctorOrg
+                - *PharmacyOrg
+                - *PatientOrg
+            Capabilities:
+                <<: *ApplicationCapabilities

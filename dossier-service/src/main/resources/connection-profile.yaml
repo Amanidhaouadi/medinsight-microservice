@@ -1,0 +1,35 @@
+name: "medinsight-network-org1"
+version: "1.0.0"
+
+client:
+  organization: DoctorOrg
+  connection:
+    timeout:
+      peer:
+        endorser: '300'
+
+organizations:
+  DoctorOrg:
+    mspid: DoctorMSP
+    peers:
+    - peer0.doctor.medinsight.com
+    certificateAuthorities:
+    - ca.doctor.medinsight.com
+
+peers:
+  peer0.doctor.medinsight.com:
+    url: grpcs://localhost:7051
+    tlsCACerts:
+      path: ../fabric-network/crypto-config/peerOrganizations/doctor.medinsight.com/tlsca/tlsca.doctor.medinsight.com-cert.pem
+    grpcOptions:
+      ssl-target-name-override: peer0.doctor.medinsight.com
+      hostnameOverride: peer0.doctor.medinsight.com
+
+certificateAuthorities:
+  ca.doctor.medinsight.com:
+    url: https://localhost:7054
+    caName: ca-doctor
+    tlsCACerts:
+      path: ../fabric-network/crypto-config/peerOrganizations/doctor.medinsight.com/ca/ca.doctor.medinsight.com-cert.pem
+    httpOptions:
+      verify: false

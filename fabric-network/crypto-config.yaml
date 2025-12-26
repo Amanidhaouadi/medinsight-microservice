@@ -1,0 +1,30 @@
+OrdererOrgs:
+  - Name: Orderer
+    Domain: medinsight.com
+    Specs:
+      - Hostname: orderer
+
+PeerOrgs:
+  - Name: DoctorOrg
+    Domain: doctor.medinsight.com
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+    Users:
+      Count: 1
+
+  - Name: PharmacyOrg
+    Domain: pharmacy.medinsight.com
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+    Users:
+      Count: 1
+
+  - Name: PatientOrg
+    Domain: patient.medinsight.com
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+    Users:
+      Count: 1
